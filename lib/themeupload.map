@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "themeupload.js",
+  "sourceRoot": "..",
+  "sources": [
+    "src/themeupload.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;CAAA,GAAA,EAAA;;CAAA,CAAA,CAAO,CAAP,GAAO,EAAA;;CAAP,CAGA,CAAY,CAAZ,CAAA,IAAa;CACH,CAAe,CAAvB,CAAA,GAAO,EAAP,EAAA;CADF,EAAY;CAHZ"
+}

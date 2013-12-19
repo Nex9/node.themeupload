@@ -1,0 +1,38 @@
+{
+  "name": "themeuplaod",
+  "description": "node themeupload",
+  "version": "0.0.1",
+  "author": {
+    "name": "pepe"
+  },
+  "keywords": [
+    "coffeescript"
+  ],
+  "contributors": [
+    {
+      "name": "reco"
+    },
+    {
+      "name": "flow"
+    },
+    {
+      "name": "aschmid"
+    }
+  ],
+  "devDependencies": {
+    "coffee-script": ">=1.6.3",
+    "walkdir"   : "*",
+    "libyaml"   : "*",
+    "mime"      : "*",
+    "mhash"     : "*",
+    "restler"   : "*"
+  },
+  "main": "./index.js",
+  "scripts": {
+    "test": "for i in test/*.html; do phantomjs test/lib/run-jasmine.phantom.js file://`pwd`/$i; done"
+  },
+  "readme": "lazy coding",
+  "readmeFilename": "README.md",
+  "_id": "themeupload@0.0.1",
+  "_from": "themeupload@~0.0.1"
+}
