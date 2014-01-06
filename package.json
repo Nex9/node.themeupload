@@ -27,7 +27,10 @@
     "mhash"     : "*",
     "restler"   : "*"
   },
-  "main": "./index.js",
+  "main": "./lib/themeupload.js",
+  "bin": {
+    "thupl": "./bin/themeupl"
+  },
   "scripts": {
     "test": "for i in test/*.html; do phantomjs test/lib/run-jasmine.phantom.js file://`pwd`/$i; done"
   },

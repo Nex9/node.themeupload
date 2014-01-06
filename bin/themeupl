@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+ThemeUpload = require('../lib/themeupload');
+themeupload = new ThemeUpload;
+themeupload.exec();
+

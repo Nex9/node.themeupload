@@ -5,88 +5,101 @@ YAML    = require("libyaml")
 mime    = require("mime")
 hash    = require("mhash").hash;
 
-upload = (inpath) ->
+class Upload
 
-  opts        = {}
-  exclude     = ['theme.yaml', 'index.html']
-  domain      = ''
-  version     = null
-  totalfiles  = 0
-  callcounter = 0
+  constructor: (inpath) ->
 
-  gaeVersion = ->
-    if opts.gaeversion is 'default'
+    @inpath      = inpath
+    @opts        = {}
+    @exclude     = ['theme.yaml', 'index.html']
+    @domain      = ''
+    @version     = null
+    @totalfiles  = 0
+    @callcounter = 0
+
+    console.log 'this inpath', @inpath
+
+    @run()
+
+  run: ->
+    console.log 'getting configuration...'
+    @parseYaml()
+    @getDomain()
+    @getNextVersion()
+
+  gaeVersion: ->
+    if @opts.gaeversion is 'default'
       return ''
-    return '.'+opts.gaeversion
+    return '.'+@opts.gaeversion
 
-  getDomain = ->
-    domain = 'http://'+ opts.tenant + gaeVersion() + '.nex9-99.appspot.com'
-    domain = 'http://localhost:8080' if opts.debug
+  getDomain: ->
+    @domain = 'http://'+ @opts.tenant + @gaeVersion() + '.nex9-99.appspot.com'
+    @domain = 'http://localhost:8080' if @opts.debug
 
-  parseYaml = ->
-    yamlPath = inpath+'/theme.yaml'
+  parseYaml: ->
+    yamlPath = @inpath+'/theme.yaml'
     process.kill() unless fs.existsSync yamlPath
-    opts = YAML.readFileSync(yamlPath)[0]
+    @opts = YAML.readFileSync(yamlPath)[0]
 
-  getNextVersion = ->
-    getNextDone = (data) ->
-      version = parseInt data
-      console.log 'themeversion is', version
-      walkFiles()
+  getNextVersion: ->
+    getNextDone = (data) =>
+      console.log 'data', data
+      @version = parseInt data
+      console.log 'themeversion is', @version
+      @walkFiles()
 
-    url = domain + '/api/v2/themeupload/next'
+    url = @domain + '/api/v2/themeupload/next'
     restler.get(url).on('complete', getNextDone)
 
-  pathFilter = (path) ->
+  pathFilter: (path) =>
     fname = path.split('/')[path.split('/').length-1]
-    return false if fname in exclude
+    return false if fname in @exclude
     return false if fname.indexOf('.') is 0
     true
 
-  walkFiles = ->
-    paths = walk.sync inpath
-    paths = paths.filter pathFilter
-    totalfiles  = paths.length
-    callcounter = totalfiles
-    console.log 'starting deployment for', paths.length, 'paths'
+  walkFiles: ->
+    paths        = walk.sync @inpath
+    paths        = paths.filter @pathFilter
+    @totalfiles  = paths.length
+    @callcounter = @totalfiles
+    console.log 'starting deployment for', @totalfiles, 'paths'
     for filepath, i  in paths
-      uploadFile filepath, i
+      @uploadFile filepath, i
 
-  flushCache = ->
+  flushCache: ->
     console.log 'flushing the cache'
     data =
       data : {key: 'UWSMJGaPRcAmgXbNjOhHYrT2VzIkufKqy9eptsExCQnFD'}
-    url = domain + '/api/flushcache'
+    url = @domain + '/api/flushcache'
     restler.post(url, data).on('complete', (data, response) -> console.log('deployment done!'))
 
-  cleanup = ->
+  cleanup: ->
     console.log 'done uploading files...'
-    if opts.setdefault
-      console.log 'going to set the default version to', version
-      url = domain + '/api/v2/themeupload/setdefault/' + version
-      restler.get(url).on('complete', flushCache)
+    if @opts.setdefault
+      console.log 'going to set the default version to', @version
+      url = @domain + '/api/v2/themeupload/setdefault/' + @version
+      restler.get(url).on('complete', @flushCache)
     else
       flushCache()
 
-  uploadFile = (filepath, i) ->
+  uploadFile: (filepath, i) ->
 
-    uploadBinary = (body) ->
+    uploadBinary = (body) =>
       stats = fs.statSync(filepath)
 
       data =
         multipart : true
         data : { file : restler.file(filepath, null, stats.size, null, mimetype) }
 
-      restler.post(body, data).on('complete', (data, response) ->
+      restler.post(body, data).on('complete', (data, response) =>
           console.log 'done uploading', serving_path
-          callcounter -= 1
-          if callcounter is 0
-            cleanup()
-
+          @callcounter -= 1
+          console.log 'callcounter...', @callcounter
+          @cleanup() if @callcounter is 0
         )
 
-    postData = (filedata) ->
-      url     = domain + '/api/v2/themeupload/uploadurl'
+    postData = (filedata) =>
+      url     = @domain + '/api/v2/themeupload/uploadurl'
       payload = JSON.stringify(filedata)
       restler.post(url, {data : payload}).on('complete', uploadBinary)
 
@@ -98,7 +111,7 @@ upload = (inpath) ->
     filedata =
       path     : serving_path
       mimetype : mimetype
-      version  : version
+      version  : @version
       sha      : 0
 
     fs.readFile filepath, (err, data) ->
@@ -107,30 +120,27 @@ upload = (inpath) ->
       postData filedata
 
 
+class ThemeUpload
 
-  console.log 'getting configuration...'
-  parseYaml()
-  getDomain()
-  getNextVersion()
+  exec: ->
+    args = process.argv
+
+    if args.length isnt 3
+      if args.length is 2
+        console.log 'the command must be called with path as an argument'
+        return
+      else if args.length > 3
+        console.log 'too many arguments'
+        return
+
+    path = args[args.length-1]
+
+    if fs.existsSync(path) and fs.existsSync(path+'/public')
+      new Upload(path+'/public')
+    else
+      console.log 'fuck'
 
 
-
-args = process.argv
-
-if args.length isnt 3
-  if args.length is 2
-    console.log 'the command must be called with path as an argument'
-    return
-  else if args.length > 3
-    console.log 'too many arguments'
-    return
-
-
-path = args[args.length-1]
-
-if fs.existsSync(path) and fs.existsSync(path+'/public')
-  upload(path+'/public')
-else
-  console.log 'fuck'
+module.exports = ThemeUpload
 
 
