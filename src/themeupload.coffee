@@ -3,7 +3,11 @@ restler = require("restler")
 walk    = require("walkdir")
 YAML    = require("libyaml")
 mime    = require("mime")
-hash    = require("mhash").hash;
+hash    = require("mhash").hash
+
+defer = require("node-promise").defer
+promisewhen = require("node-promise").when
+promiseall = require("node-promise").all
 
 class Upload
 
@@ -37,14 +41,14 @@ class Upload
     @domain = 'http://'+ @opts.tenant + @gaeVersion() + '.nex9-99.appspot.com'
     @domain = 'http://localhost:8080' if @opts.debug
 
-  parseYaml: ->
+  parseYaml: =>
     yamlPath = @inpath+'/theme.yaml'
     process.kill() unless fs.existsSync yamlPath
     @opts = YAML.readFileSync(yamlPath)[0]
 
   getNextVersion: ->
     getNextDone = (data) =>
-      console.log 'data', data
+      # console.log 'data', data
       @version = parseInt data
       console.log 'themeversion is', @version
       @walkFiles()
@@ -65,8 +69,8 @@ class Upload
     @totalfiles  = paths.length
     @callcounter = @totalfiles
     console.log 'starting deployment for', @totalfiles, 'files'
-    for filepath in paths
-      @uploadFile filepath
+    objs = (@uploadFile filepath for filepath in paths)
+    promisewhen promiseall(objs), @cleanup
 
   flushCache: =>
     console.log 'flushing the cache'
@@ -75,7 +79,7 @@ class Upload
     url = @domain + '/api/flushcache'
     restler.post(url, data).on('complete', (data, response) -> console.log('deployment done!'))
 
-  cleanup: ->
+  cleanup: =>
     console.log 'done uploading files...'
     if @opts.setdefault
       console.log 'going to set the default version to', @version
@@ -86,6 +90,8 @@ class Upload
 
   uploadFile: (filepath) ->
 
+    deferred = new defer();
+
     uploadBinary = (body) =>
       stats = fs.statSync(filepath)
 
@@ -95,11 +101,9 @@ class Upload
       console.log 'uploading ->', serving_path
 
       restler.post(body, data).on('complete', (data, response) =>
-          # console.log 'done uploading', serving_path
-          @callcounter -= 1
-          # console.log 'callcounter...', @callcounter
-          @cleanup() if @callcounter is 0
+          deferred.resolve()
         )
+
 
     postData = (filedata) =>
       url     = @domain + '/api/v2/themeupload/uploadurl'
@@ -121,10 +125,12 @@ class Upload
 
       postData filedata
 
+    return deferred.promise
 
 class ThemeUpload
 
   exec: ->
+
     args = process.argv
 
     if args.length isnt 3

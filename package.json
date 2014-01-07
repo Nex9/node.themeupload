@@ -25,7 +25,8 @@
     "libyaml"   : "*",
     "mime"      : "*",
     "mhash"     : "*",
-    "restler"   : "*"
+    "restler"   : "*",
+    "node-promise" : "*"
   },
   "main": "./lib/themeupload.js",
   "bin": {
