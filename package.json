@@ -19,7 +19,7 @@
       "name": "aschmid"
     }
   ],
-  "devDependencies": {
+  "dependencies": {
     "coffee-script": ">=1.6.3",
     "walkdir"   : "*",
     "libyaml"   : "*",
