@@ -25,6 +25,7 @@ class Upload
     console.log 'getting configuration...'
     @parseYaml()
     @getDomain()
+    console.log 'domain is', @domain
     @getNextVersion()
 
   gaeVersion: ->
@@ -53,6 +54,7 @@ class Upload
 
   pathFilter: (path) =>
     fname = path.split('/')[path.split('/').length-1]
+    return false if fs.lstatSync(path).isDirectory()
     return false if fname in @exclude
     return false if fname.indexOf('.') is 0
     true
@@ -62,9 +64,9 @@ class Upload
     paths        = paths.filter @pathFilter
     @totalfiles  = paths.length
     @callcounter = @totalfiles
-    console.log 'starting deployment for', @totalfiles, 'paths'
-    for filepath, i  in paths
-      @uploadFile filepath, i
+    console.log 'starting deployment for', @totalfiles, 'files'
+    for filepath in paths
+      @uploadFile filepath
 
   flushCache: ->
     console.log 'flushing the cache'
@@ -80,9 +82,9 @@ class Upload
       url = @domain + '/api/v2/themeupload/setdefault/' + @version
       restler.get(url).on('complete', @flushCache)
     else
-      flushCache()
+      @flushCache()
 
-  uploadFile: (filepath, i) ->
+  uploadFile: (filepath) ->
 
     uploadBinary = (body) =>
       stats = fs.statSync(filepath)
@@ -90,11 +92,12 @@ class Upload
       data =
         multipart : true
         data : { file : restler.file(filepath, null, stats.size, null, mimetype) }
+      console.log 'uploading ->', serving_path
 
       restler.post(body, data).on('complete', (data, response) =>
-          console.log 'done uploading', serving_path
+          # console.log 'done uploading', serving_path
           @callcounter -= 1
-          console.log 'callcounter...', @callcounter
+          # console.log 'callcounter...', @callcounter
           @cleanup() if @callcounter is 0
         )
 
@@ -103,9 +106,8 @@ class Upload
       payload = JSON.stringify(filedata)
       restler.post(url, {data : payload}).on('complete', uploadBinary)
 
-
     # post the request with the data and get the uploadurl
-    serving_path = '/public' + filepath.split('/public')[1]
+    serving_path = filepath.split('/public')[1]
     mimetype     = mime.lookup serving_path
 
     filedata =
