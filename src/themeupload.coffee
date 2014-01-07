@@ -68,11 +68,12 @@ class Upload
     for filepath in paths
       @uploadFile filepath
 
-  flushCache: ->
+  flushCache: =>
     console.log 'flushing the cache'
     data =
       data : {key: 'UWSMJGaPRcAmgXbNjOhHYrT2VzIkufKqy9eptsExCQnFD'}
     url = @domain + '/api/flushcache'
+    console.log 'url is ', url
     restler.post(url, data).on('complete', (data, response) -> console.log('deployment done!'))
 
   cleanup: ->
