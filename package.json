@@ -1,38 +1,30 @@
 {
-  "name": "themeuplaod",
-  "description": "node themeupload",
-  "version": "0.0.1",
-  "author": {
-    "name": "pepe"
-  },
-  "keywords": [
-    "coffeescript"
-  ],
-  "contributors": [
-    {
-      "name": "reco"
+    "name": "themeuplaod2",
+    "description": "node themeupload2",
+    "version": "0.0.1",
+    "author": {
+        "name": "pepe"
     },
-    {
-      "name": "flow"
+    "keywords": [
+        "coffeescript"
+    ],
+    "contributors": [{
+        "name": "aschmid"
+    }],
+    "dependencies": {
+        "coffee-script": ">=1.6.3",
+        "walkdir": "*",
+        "libyaml": "*",
+        "mime": "*",
+        "mhash": "*",
+        "restler": "*",
+        "node-promise": "*"
     },
-    {
-      "name": "aschmid"
-    }
-  ],
-  "dependencies": {
-    "coffee-script": ">=1.6.3",
-    "walkdir"   : "*",
-    "libyaml"   : "*",
-    "mime"      : "*",
-    "mhash"     : "*",
-    "restler"   : "*",
-    "node-promise" : "*"
-  },
-  "main": "./lib/themeupload.js",
-  "bin": {
-    "deploy": "./bin/deploy"
-  },
-  "readmeFilename": "README.md",
-  "_id": "themeupload@0.0.1",
-  "_from": "themeupload@~0.0.1"
+    "main": "./lib/themeupload.js",
+    "bin": {
+        "deploy2": "./bin/deploy"
+    },
+    "readmeFilename": "README.md",
+    "_id": "themeupload@0.0.2",
+    "_from": "themeupload@~0.0.2"
 }

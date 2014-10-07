@@ -38,7 +38,7 @@ class Upload
     return '.'+@opts.gaeversion
 
   getDomain: ->
-    @domain = 'http://'+ @opts.tenant + @gaeVersion() + '.nex9-99.appspot.com'
+    @domain = 'http://imagoblobs.appspot.com'
     @domain = 'http://localhost:8080' if @opts.debug
 
   parseYaml: =>
@@ -53,7 +53,7 @@ class Upload
       console.log 'themeversion is', @version
       @walkFiles()
 
-    url = @domain + '/api/v2/themeupload/next'
+    url = @domain + '/themeupload/next?ns='+ @opts.tenant
     restler.get(url).on('complete', getNextDone)
 
   pathFilter: (path) =>
@@ -76,14 +76,14 @@ class Upload
     console.log 'flushing the cache'
     data =
       data : {key: 'UWSMJGaPRcAmgXbNjOhHYrT2VzIkufKqy9eptsExCQnFD'}
-    url = @domain + '/api/flushcache'
+    url = @domain + '/themeupload/flushcache'
     restler.post(url, data).on('complete', (data, response) -> console.log('deployment done!'))
 
   cleanup: =>
     console.log 'done uploading files...'
     if @opts.setdefault
       console.log 'going to set the default version to', @version
-      url = @domain + '/api/v2/themeupload/setdefault/' + @version
+      url = @domain + '/themeupload/setdefault/' + @opts.tenant + '/' + @version
       restler.get(url).on('complete', @flushCache)
     else
       @flushCache()
@@ -106,7 +106,8 @@ class Upload
 
 
     postData = (filedata) =>
-      url     = @domain + '/api/v2/themeupload/uploadurl'
+      url     = @domain + '/themeupload/uploadurl'
+      filedata.namespace = @opts.tenant
       payload = JSON.stringify(filedata)
       restler.post(url, {data : payload}).on('complete', uploadBinary)
 
