@@ -20,13 +20,14 @@
     }
   ],
   "dependencies": {
-    "coffee-script": ">=1.6.3",
+    "coffee-script": ">=1.7.1",
     "walkdir"   : "*",
     "libyaml"   : "*",
     "mime"      : "*",
-    "mhash"     : "*",
+    "moment"    : "*",
     "restler"   : "*",
-    "node-promise" : "*"
+    "async"     : "*",
+    "MD5"       : "*"
   },
   "main": "./lib/themeupload.js",
   "bin": {

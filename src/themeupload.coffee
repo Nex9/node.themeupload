@@ -3,11 +3,10 @@ restler = require("restler")
 walk    = require("walkdir")
 YAML    = require("libyaml")
 mime    = require("mime")
-hash    = require("mhash").hash
+md5     = require("MD5")
+pathMod = require("path")
+async   = require("async")
 
-defer = require("node-promise").defer
-promisewhen = require("node-promise").when
-promiseall = require("node-promise").all
 
 class Upload
 
@@ -30,16 +29,12 @@ class Upload
     @parseYaml()
     @getDomain()
     console.log 'domain is', @domain
+    console.log 'opts', @opts
     @getNextVersion()
 
-  gaeVersion: ->
-    if @opts.gaeversion is 'default'
-      return ''
-    return '.'+@opts.gaeversion
-
   getDomain: ->
-    @domain = 'http://'+ @opts.tenant + @gaeVersion() + '.nex9-99.appspot.com'
-    @domain = 'http://localhost:8080' if @opts.debug
+    @domain = 'http://themes-nex9.rhcloud.com'
+    @domain = 'http://localhost:8001' if @opts.debug
 
   parseYaml: =>
     yamlPath = @inpath+'/theme.yaml'
@@ -47,14 +42,14 @@ class Upload
     @opts = YAML.readFileSync(yamlPath)[0]
 
   getNextVersion: ->
-    getNextDone = (data) =>
-      # console.log 'data', data
+    url = @domain + '/api/nextversion'
+
+    console.log 'nextversion url', url
+      
+    restler.postJson(url, {'_tenant': @opts.tenant}).on 'complete', (data, response) =>
       @version = parseInt data
       console.log 'themeversion is', @version
       @walkFiles()
-
-    url = @domain + '/api/v2/themeupload/next'
-    restler.get(url).on('complete', getNextDone)
 
   pathFilter: (path) =>
     fname = path.split('/')[path.split('/').length-1]
@@ -66,66 +61,37 @@ class Upload
   walkFiles: ->
     paths        = walk.sync @inpath
     paths        = paths.filter @pathFilter
-    @totalfiles  = paths.length
-    @callcounter = @totalfiles
-    console.log 'starting deployment for', @totalfiles, 'files'
-    objs = (@uploadFile filepath for filepath in paths)
-    promisewhen promiseall(objs), @cleanup
+    _this        = @
+    async.eachLimit paths, 10,
+      (path, cb) =>
+        ext     = pathMod.extname path
+        stats   = fs.statSync(path)
+        mimetype = mime.lookup path
+        fs.readFile path, (err, buf) =>
+          data =
+            multipart : true
+            data  : {
+              file  : restler.file(path, null, stats.size, null, mimetype)
+              path  : path.split('/public')[1]
+              tenant: _this.opts.tenant
+              md5   : md5(buf)
+            }
+          url = _this.domain + "/#{_this.version}/uploadfile"
+          restler.post(url, data).on 'complete', (data, response) => 
+            console.log pathMod.basename(path), '...done'
+            cb()
+          
+      (err) =>
+        console.log 'done uploading files...'
+        if _this.opts.setdefault
+          console.log 'going to set the default version to', _this.version
+          url = _this.domain + '/api/setdefault'
+          data = 
+            version: _this.version
+            _tenant: _this.opts.tenant
+          restler.postJson(url, data).on 'complete', (data, response) ->
+            console.log 'all done!'
 
-  flushCache: =>
-    console.log 'flushing the cache'
-    data =
-      data : {key: 'UWSMJGaPRcAmgXbNjOhHYrT2VzIkufKqy9eptsExCQnFD'}
-    url = @domain + '/api/flushcache'
-    restler.post(url, data).on('complete', (data, response) -> console.log('deployment done!'))
-
-  cleanup: =>
-    console.log 'done uploading files...'
-    if @opts.setdefault
-      console.log 'going to set the default version to', @version
-      url = @domain + '/api/v2/themeupload/setdefault/' + @version
-      restler.get(url).on('complete', @flushCache)
-    else
-      @flushCache()
-
-  uploadFile: (filepath) ->
-
-    deferred = new defer();
-
-    uploadBinary = (body) =>
-      stats = fs.statSync(filepath)
-
-      data =
-        multipart : true
-        data : { file : restler.file(filepath, null, stats.size, null, mimetype) }
-      console.log 'uploading ->', serving_path
-
-      restler.post(body, data).on('complete', (data, response) =>
-          deferred.resolve()
-        )
-
-
-    postData = (filedata) =>
-      url     = @domain + '/api/v2/themeupload/uploadurl'
-      payload = JSON.stringify(filedata)
-      restler.post(url, {data : payload}).on('complete', uploadBinary)
-
-    # post the request with the data and get the uploadurl
-    serving_path = filepath.split('/public')[1]
-    mimetype     = mime.lookup serving_path
-
-    filedata =
-      path     : serving_path
-      mimetype : mimetype
-      version  : @version
-      sha      : 0
-
-    fs.readFile filepath, (err, data) ->
-      filedata.sha = hash('sha224', data)
-
-      postData filedata
-
-    return deferred.promise
 
 class ThemeUpload
 
