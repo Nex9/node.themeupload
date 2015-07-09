@@ -64,23 +64,42 @@ class Upload
     _this        = @
     async.eachLimit paths, 10,
       (path, cb) =>
-        ext     = pathMod.extname path
-        stats   = fs.statSync(path)
+
+        ext      = pathMod.extname path
         mimetype = mime.lookup path
-        fs.readFile path, (err, buf) =>
-          data =
-            multipart : true
-            data  : {
-              file  : restler.file(path, null, stats.size, null, mimetype)
-              path  : path.split('/public')[1]
-              tenant: _this.opts.tenant
-              md5   : md5(buf)
-            }
-          url = _this.domain + "/#{_this.version}/uploadfile"
-          restler.post(url, data).on 'complete', (data, response) => 
-            console.log pathMod.basename(path), '...done'
-            cb()
-          
+
+        stats    = fs.stat path, (err, stats) =>
+          payload =
+            'action'  : 'uploadurl'
+            'filename': path.split('/public')[1]
+            'mimetype': mimetype
+            'version' : _this.version
+            'tenant'  : _this.opts.tenant
+
+          url = "#{_this.domain}/api/themefile/upload"
+          restler.postJson(url, payload).on 'complete', (gcsurl, response) =>
+
+            data =
+              multipart : true
+              data  : {
+                file  : restler.file(path, null, stats.size, null, mimetype)
+              }
+            restler.put(gcsurl, data).on 'complete', (data, response) => 
+              console.log pathMod.basename(path), '...done'
+
+              fs.readFile path, (err, buf) =>
+
+                themefile =
+                  _tenant  : _this.opts.tenant
+                  path    : payload.filename
+                  version : _this.version
+                  md5     : md5(buf)
+                  size    : stats.size
+                  mimetype: mimetype
+                  gs_path : "#{_this.opts.tenant}/#{_this.version}#{payload.filename}"
+                url = "#{_this.domain}/api/themefile"
+                restler.postJson(url, themefile).on 'complete', (data, response) ->
+                  cb()
       (err) =>
         console.log 'done uploading files...'
         if _this.opts.setdefault
