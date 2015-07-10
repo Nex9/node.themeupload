@@ -26,6 +26,7 @@
     "mime"      : "*",
     "moment"    : "*",
     "restler"   : "*",
+    "request"   : "*",
     "async"     : "*",
     "MD5"       : "*"
   },

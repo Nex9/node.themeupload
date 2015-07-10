@@ -1,5 +1,6 @@
 fs      = require("fs")
 restler = require("restler")
+request = require("request")
 walk    = require("walkdir")
 YAML    = require("libyaml")
 mime    = require("mime")
@@ -33,7 +34,7 @@ class Upload
     @getNextVersion()
 
   getDomain: ->
-    @domain = 'http://themes-nex9.rhcloud.com'
+    @domain = "https://#{@opts.tenant}.imago.io"
     @domain = 'http://localhost:8001' if @opts.debug
 
   parseYaml: =>
@@ -66,31 +67,31 @@ class Upload
       (path, cb) =>
 
         ext      = pathMod.extname path
-        mimetype = mime.lookup path
+        mimetype = mime.lookup path.replace(/\.gz$/, '')
 
-        stats    = fs.stat path, (err, stats) =>
+        stats = fs.stat path, (err, stats) =>
+
           payload =
             'action'  : 'uploadurl'
-            'filename': path.split('/public')[1]
+            'filename': path.split('/public')[1].replace(/\.gz$/, '')
             'mimetype': mimetype
             'version' : _this.version
             'tenant'  : _this.opts.tenant
 
+          isGzip = ext is '.gz'
+
           url = "#{_this.domain}/api/themefile/upload"
           restler.postJson(url, payload).on 'complete', (gcsurl, response) =>
-
-            data =
-              multipart : true
-              data  : {
-                file  : restler.file(path, null, stats.size, null, mimetype)
-              }
-            restler.put(gcsurl, data).on 'complete', (data, response) => 
+   
+            request = require('request')
+            rstream = fs.createReadStream(path)
+            rstream.pipe request.put(gcsurl).on 'response', (resp) =>
               console.log pathMod.basename(path), '...done'
-
               fs.readFile path, (err, buf) =>
 
                 themefile =
-                  _tenant  : _this.opts.tenant
+                  isGzip  : isGzip
+                  _tenant : _this.opts.tenant
                   path    : payload.filename
                   version : _this.version
                   md5     : md5(buf)
@@ -98,8 +99,7 @@ class Upload
                   mimetype: mimetype
                   gs_path : "#{_this.opts.tenant}/#{_this.version}#{payload.filename}"
                 url = "#{_this.domain}/api/themefile"
-                restler.postJson(url, themefile).on 'complete', (data, response) ->
-                  cb()
+                restler.postJson(url, themefile).on 'complete', (data, response) -> cb()
       (err) =>
         console.log 'done uploading files...'
         if _this.opts.setdefault
