@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+TemplateUpload = require('../lib/templateupload');
+templateupload = new TemplateUpload;
+templateupload.exec();
+

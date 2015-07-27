@@ -7,7 +7,7 @@ mime    = require("mime")
 md5     = require("MD5")
 pathMod = require("path")
 async   = require("async")
-
+request = require('request')
 
 class Upload
 
@@ -35,6 +35,8 @@ class Upload
 
   getDomain: ->
     @domain = "https://#{@opts.tenant}.imago.io"
+    if @opts.tenant in ['-admin-', '-account-']
+      @domain = 'https://themes-nex9.rhcloud.com'
     @domain = 'http://localhost:8001' if @opts.debug
 
   parseYaml: =>
@@ -45,9 +47,15 @@ class Upload
   getNextVersion: ->
     url = @domain + '/api/nextversion'
 
-    console.log 'nextversion url', url
-      
-    restler.postJson(url, {'_tenant': @opts.tenant}).on 'complete', (data, response) =>
+    opts =
+      headers: {
+        Authorization: "Basic #{new Buffer("#{@opts.apikey}:").toString('base64')}"
+      }
+
+    restler.postJson(url, {'_tenant': @opts.tenant}, opts).on 'complete', (data, response) =>
+      if response.statusCode != 200
+        console.log 'Error', data, 'statusCode:', response.statusCode, 'for nextversion request'
+        return
       @version = parseInt data
       console.log 'themeversion is', @version
       @walkFiles()
@@ -79,13 +87,21 @@ class Upload
             'tenant'  : _this.opts.tenant
 
           isGzip = ext is '.gz'
+          # console.log 'isGzip', isGzip, 'path', payload.filename
+          # console.log 'payload', payload
 
           url = "#{_this.domain}/api/themefile/upload"
-          restler.postJson(url, payload).on 'complete', (gcsurl, response) =>
-   
-            request = require('request')
+          opts =
+            headers: {
+              Authorization: "Basic #{new Buffer("#{@opts.apikey}:").toString('base64')}"
+            }
+            
+          restler.postJson(url, payload, opts).on 'complete', (data, response) =>
+            if response.statusCode != 200
+              console.log 'Error', data, 'statusCode:', response.statusCode, 'for file', payload.filename
+              return cb()
             rstream = fs.createReadStream(path)
-            rstream.pipe request.put(gcsurl).on 'response', (resp) =>
+            rstream.pipe request.put(data).on 'response', (resp) =>
               console.log pathMod.basename(path), '...done'
               fs.readFile path, (err, buf) =>
 

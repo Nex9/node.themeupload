@@ -21,6 +21,7 @@
   ],
   "dependencies": {
     "coffee-script": ">=1.7.1",
+    "node-sass" : "*",
     "walkdir"   : "*",
     "libyaml"   : "*",
     "mime"      : "*",
