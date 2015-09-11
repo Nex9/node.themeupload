@@ -22,7 +22,7 @@
   "dependencies": {
     "coffee-script": ">=1.6.3",
     "walkdir"   : "*",
-    "libyaml"   : "*",
+    "js-yaml"   : "*",
     "mime"      : "*",
     "mhash"     : "*",
     "restler"   : "*",
