@@ -21,12 +21,12 @@
   ],
   "dependencies": {
     "coffee-script": ">=1.6.3",
-    "walkdir"   : "*",
-    "js-yaml"   : "*",
-    "mime"      : "*",
-    "mhash"     : "*",
-    "restler"   : "*",
-    "node-promise" : "*"
+    "js-yaml": "^3.10.0",
+    "mhash": "^2.1.9",
+    "mime": "^2.0.3",
+    "node-promise": "^0.5.12",
+    "restler": "^3.4.0",
+    "walkdir": "^0.0.12"
   },
   "main": "./lib/themeupload.js",
   "bin": {

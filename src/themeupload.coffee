@@ -118,7 +118,7 @@ class Upload
 
     # post the request with the data and get the uploadurl
     serving_path = filepath.split('/public')[1]
-    mimetype     = mime.lookup serving_path
+    mimetype = mime.getType serving_path
 
     filedata =
       path     : serving_path
