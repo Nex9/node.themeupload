@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "coffee-script": ">=1.6.3",
-    "js-yaml": "^3.10.0",
+    "js-yaml": "^3.13.1",
     "mhash": "^2.1.9",
     "mime": "^2.0.3",
     "node-promise": "^0.5.12",
